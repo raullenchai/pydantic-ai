@@ -451,7 +451,6 @@ class Agent(AbstractAgent[AgentDepsT, OutputDataT]):
             tools,
             max_retries=self._max_tool_retries,
             timeout=self._tool_timeout,
-            output_schema=self._output_schema,
         )
 
         # Agent-direct toolsets
@@ -2413,7 +2412,6 @@ class Agent(AbstractAgent[AgentDepsT, OutputDataT]):
                 some_tools.value,
                 max_retries=self._max_tool_retries,
                 timeout=self._tool_timeout,
-                output_schema=self._output_schema,
             )
         else:
             function_toolset = self._function_toolset
@@ -2665,20 +2663,6 @@ def _capabilities_from_spec(
 
 @dataclasses.dataclass(init=False)
 class _AgentFunctionToolset(FunctionToolset[AgentDepsT]):
-    output_schema: _output.OutputSchema[Any]
-
-    def __init__(
-        self,
-        tools: Sequence[Tool[AgentDepsT] | ToolFuncEither[AgentDepsT, ...]] = [],
-        *,
-        max_retries: int = 1,
-        timeout: float | None = None,
-        id: str | None = None,
-        output_schema: _output.OutputSchema[Any],
-    ):
-        self.output_schema = output_schema
-        super().__init__(tools, max_retries=max_retries, timeout=timeout, id=id)
-
     @property
     def id(self) -> str:
         return '<agent>'
@@ -2686,10 +2670,3 @@ class _AgentFunctionToolset(FunctionToolset[AgentDepsT]):
     @property
     def label(self) -> str:
         return 'the agent'
-
-    def add_tool(self, tool: Tool[AgentDepsT]) -> None:
-        if tool.requires_approval and not self.output_schema.allows_deferred_tools:
-            raise exceptions.UserError(
-                'To use tools that require approval, add `DeferredToolRequests` to the list of output types for this agent.'
-            )
-        super().add_tool(tool)
